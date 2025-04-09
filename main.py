@@ -41,8 +41,8 @@ def confrontoPass(DbPass, InputPass):
     return DbPass == PassHash(InputPass)
 
 def invia_email(destinatario, codice):
-    sender_email = "JanvirDbAd@gmail.com"
-    password = "AdminJan123"
+    sender_email = "patadmpatberna@gmail.com"
+    password = "rmem vklz zcrp lxsy"
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
 
