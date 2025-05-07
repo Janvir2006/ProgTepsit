@@ -115,7 +115,7 @@ def login_register(request: Request,
                 return template.TemplateResponse("loginRegister.html", {"request": request, "error": "Credenziali non valide"})
             
             role_redirects = ["cliente", "dipendente", "fornitore", "admin"]
-            page_redirect =  ["/user_dashboard.html", "/dipendente_dashboard.html", "/fornitore_dashboard.html", "/admin_dashboard.html"]
+            page_redirect =  ["/index.html", "/dipendente_dashboard.html", "/fornitore_dashboard.html", "/admin_dashboard.html"]
 
             role = tupla[4]
             pos = -1
