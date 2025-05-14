@@ -177,7 +177,7 @@ def invia_codice(request: Request, email: str = Form(...)):
         request.session['scadenza'] = scadenza.isoformat()
 
         invia_email(email, codice)
-        return template.TemplateResponse("/cambiaPass", {"request": request})
+        return template.TemplateResponse("cambiaPass.html", {"request": request})
 
     finally:
         cursor.close()
