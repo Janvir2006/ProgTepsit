@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aggiungi Prodotto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Aggiungi Nuovo Prodotto</h2>
+        
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+
+        <form method="POST" class="needs-validation" novalidate>
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome Prodotto</label>
+                <input type="text" class="form-control" id="nome" name="nome" required>
+                <div class="invalid-feedback">
+                    Inserisci il nome del prodotto
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="descrizione" class="form-label">Descrizione</label>
+                <textarea class="form-control" id="descrizione" name="descrizione" rows="3" required></textarea>
+                <div class="invalid-feedback">
+                    Inserisci una descrizione
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="prezzo" class="form-label">Prezzo</label>
+                <input type="number" class="form-control" id="prezzo" name="prezzo" step="0.01" min="0" required>
+                <div class="invalid-feedback">
+                    Inserisci un prezzo valido
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="quantita" class="form-label">Quantità Disponibile</label>
+                <input type="number" class="form-control" id="quantita" name="quantita" min="0" required>
+                <div class="invalid-feedback">
+                    Inserisci una quantità valida
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="immagine_url" class="form-label">Nome File Immagine</label>
+                <div class="input-group">
+                    <span class="input-group-text">../static/images/</span>
+                    <input type="text" class="form-control" id="immagine_url" name="immagine_url" 
+                           placeholder="h5.png" 
+                           pattern="[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif)$" required>
+                </div>
+                <div class="invalid-feedback">
+                    Inserisci un nome file valido (es: h5.png)
+                </div>
+                <small class="form-text text-muted">
+                    Inserisci solo il nome del file (es: h5.png). Il percorso ../static/images/ verrà aggiunto automaticamente.
+                </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Aggiungi Prodotto</button>
+            <a href="/dipendente_dashboard" class="btn btn-secondary">Torna alla Dashboard</a>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Form validation
+        (function () {
+            'use strict'
+            var forms = document.querySelectorAll('.needs-validation')
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+
+        // Gestione del campo immagine
+        document.getElementById('immagine_url').addEventListener('change', function(e) {
+            let value = e.target.value;
+            // Rimuove eventuali percorsi inseriti dall'utente
+            value = value.split('/').pop();
+            value = value.split('\\').pop();
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>

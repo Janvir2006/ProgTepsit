@@ -1,0 +1,193 @@
+<!--DOCTYPE html-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--==title==========================-->
+    <title>Hot Product's</title>
+    <!--==CSS============================-->
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <!--==fav-icon=======================-->
+    <link rel="shortcut icon" href="images/favicon.png"/>
+    <!--==import-poppins-font============-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <!--==Font-Awesome-for-icons=========-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    <script src="../static/carrello.js"></script>
+    <style>
+        .product-box {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .product-text {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            position: relative;
+            padding-bottom: 50px; /* Spazio per il bottone */
+        }
+        .product-box-p-name {
+            height: 2.4em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            margin-bottom: 0.5em;
+        }
+        .p-box-category {
+            margin-bottom: 0.5em;
+        }
+        .product-text form {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: 0;
+        }
+        .product-text button {
+            width: 100%;
+            margin: 0;
+        }
+        .popular-product-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .product-img {
+            height: 200px;
+            overflow: hidden;
+        }
+        .product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+    <!--==top-bar==================================-->
+    <div class="nav-top-bar">
+        <span>20% Di Sconto Per Tutte Le Offerte E Categorie, Fai Il Tuo Ordine Ora.</span>
+    </div>
+    <!--==nav=======================================-->
+    <nav class="navigation">
+        <!--**logo********-->
+        <a href="user_dashboard" class="logo">
+            <img src="../static/images/logo_normale_v2.png" />
+        </a>
+        <!--**menu-btn****-->
+        <input type="checkbox" class="menu-btn" id="menu-btn">
+        <label for="menu-btn" class="menu-icon">
+            <span class="nav-icon"></span>
+        </label>
+        <!--**menu********-->
+        <ul class="menu">
+            <li>
+                <a href="hot_products">Prodotti</a>
+            </li>
+            <li><a href="#popular-product">Popolari</a></li>
+            <li><a href="mailto:example@mail.com">Contattaci</a></li>
+        </ul>
+        <!--**nav-btns****-->
+        <div class="nav-btns">
+            <!--cart-->
+            <a href="carrello" class="nav-cart">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>0</span>
+            </a>
+            <a href="/logout">Logout</a>
+        </div>
+    </nav><!--nav-end-->
+
+    <!--==Popular-product's===========================-->
+    <section id="popular-product" class="popular-product">
+        <!--**heading********************-->
+        <div class="product-heading">
+            <h3>Tutti i Prodotti</h3>
+        </div>
+        <!--**container*****************-->
+        <div class="popular-product-container">
+            {% for product in prodotti_lista %}
+            <div class="product-box">
+                <div class="product-img">
+                    <img src="{{ product.immagine_url }}" alt="{{ product.nome }}">
+                </div>
+                <div class="product-text">
+                    <a class="product-box-p-name" href="#">{{ product.nome }}</a>
+                    <span class="p-box-price">€{{ "%.2f"|format(product.prezzo) }}</span>
+                    <span class="p-box-category">
+                        Disponibilità: {{ product.quantita_disponibile }} pezzi
+                    </span>
+                    <form action="/carrello/aggiungi/{{ product.id_prodotto }}" method="post" enctype="application/x-www-form-urlencoded">
+                        <input type="hidden" name="quantita" value="1" />
+                        <button type="submit">
+                            Aggiungi al carrello <i class="fa-solid fa-cart-shopping"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section><!--==popular-end===-->
+
+    <!--==Footer=================================-->
+    <footer>
+        <!--**payment-method******************-->
+        <div class="footer-payment">
+            <!--logo's-->
+            <div class="footer-payment-logos">
+                <img alt="" src="../static/images/master_card.png">
+                <img alt="" src="../static/images/visa.png">
+                <img alt="" src="../static/images/paypal.png">
+                <img alt="" src="../static/images/ebay.png">
+            </div>
+            <!--text-->
+            <strong>Metodi Di Pagamento Sicuri</strong>
+        </div>
+
+        <!--**container***********************-->
+        <div class="footer-container">
+            <!--**company**-->
+            <div class="footer-company-box">
+                <!--logo-->
+                <a href="#" class="footer-logo">Logo</a>
+                <!--details-->
+                <p>descrizione</p>
+                <!--social-box-->
+                <div class="footer-social">
+                    <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#"><i class="fa-brands fa-twitter"></i></a>
+                </div>
+            </div>
+
+            <!--**link-box**-->
+            <div class="footer-link-box">
+                <strong>Link Principali</strong>
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Services</a></li>
+                </ul>
+            </div>
+
+            <!--**link-box**-->
+            <div class="footer-link-box">
+                <strong>Link Esterni</strong>
+                <ul>
+                    <li><a href="hot_products">Nostri Prodotti</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Disclaimer</a></li>
+                </ul>
+            </div>
+        </div><!--container-end-->
+    </footer>
+</body>
+</html>
