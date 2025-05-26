@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Dipendente | TechStore</title>
+    <link href="../static/style.css" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" rel="stylesheet"/>
+    <style>
+        /* Stili generali */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+
+        /* Navigazione */
+        .navigation {
+            background-color: var(--primary-color);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 50px;
+            transition: var(--transition);
+        }
+
+        .logo img:hover {
+            opacity: 0.9;
+        }
+
+        .menu {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Contenuto principale */
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .dashboard-container h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .dashboard-container h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background-color: var(--secondary-color);
+            border-radius: 2px;
+        }
+
+        .dashboard-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        /* Carte azioni */
+        .action-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--dark-color);
+            border: 1px solid #e0e0e0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background-color: var(--secondary-color);
+            transition: var(--transition);
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-card:hover::before {
+            width: 8px;
+            background-color: var(--accent-color);
+        }
+
+        .action-card i {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--secondary-color);
+            transition: var(--transition);
+        }
+
+        .action-card:hover i {
+            color: var(--accent-color);
+            transform: scale(1.1);
+        }
+
+        .action-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .action-card p {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navigation {
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .menu {
+                margin-top: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            .dashboard-container h1 {
+                font-size: 2rem;
+            }
+
+            .dashboard-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navigation">
+        <a href="/dipendente_dashboard" class="logo">
+            <img src="../static/images/logo_normale_v2.png" alt="TechStore Logo"/>
+        </a>
+        
+        <div class="menu">
+            <a href="/dipendente_dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/aggiungi_prodotto"><i class="fas fa-plus-circle"></i> Aggiungi Prodotto</a>
+            <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <section class="dashboard-container">
+        <h1>Benvenuto nella tua Dashboard</h1>
+        <div class="dashboard-actions">
+            <a href="/aggiungi_prodotto" class="action-card">
+                <i class="fas fa-plus-circle"></i>
+                <h3>Aggiungi Prodotto</h3>
+                <p>Aggiungi nuovi prodotti al catalogo del negozio</p>
+            </a>
+            <a href="/hot_products" class="action-card">
+                <i class="fas fa-boxes"></i>
+                <h3>Gestisci Catalogo</h3>
+                <p>Visualizza e modifica tutti i prodotti disponibili</p>
+            </a>
+        </div>
+    </section>
+</body>
+</html>

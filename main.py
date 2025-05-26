@@ -13,21 +13,31 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 import json
 from pydantic import BaseModel
+from decimal import Decimal
+from datetime import datetime
 app = FastAPI()
 
 app.add_middleware(SessionMiddleware, secret_key="ciao")
 template = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+
 # Funzioni di connessione al database e altre funzioni di utilità (come prima)
 def connessione():
-    conn = mysql.connector.connect(
-        host='192.168.3.92',
-        user='admquintaainfo',
-        password='admquintaainfo',
-        database='supermercato'
-    )
-    return conn
+    try:
+        conn = mysql.connector.connect(
+            host='127.0.0.1',
+            user='jan',
+            password='Janvir2006',
+            database='supermercato'
+        )
+        print("Database connection successful")  # Debug print
+        return conn
+    except Exception as e:
+        print(f"Database connection error: {str(e)}")  # Debug print
+        raise e
+
 
 def PassHash(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -65,6 +75,11 @@ def invia_email(destinatario, codice):
 def root():
     return RedirectResponse(url="/loginRegister")
 
+
+@app.get("/aboutus", response_class=HTMLResponse)
+def IcPage(request: Request):
+    return template.TemplateResponse("aboutus.html", {"request": request})
+
 @app.get("/inviaCodice", response_class=HTMLResponse)
 def IcPage(request: Request):
     return template.TemplateResponse("inviaCodice.html", {"request": request})
@@ -86,6 +101,7 @@ def login_register(request: Request,
                          username: str = Form(...),
                          password: str = Form(...),
                          email: str = Form(None)):
+    print(f"Login attempt - username: {username}, email: {email}")  # Debug print
     conn = connessione()
     cursor = conn.cursor()
 
@@ -95,6 +111,8 @@ def login_register(request: Request,
             cursor.execute(query, (username,))
             tupla = cursor.fetchone()
             
+            print(f"Login query result: {tupla}")  # Debug print
+            
             if tupla is None or not confrontoPass(tupla[3], password):
                 return template.TemplateResponse("loginRegister.html", 
                     {"request": request, "error": "Credenziali non valide"})
@@ -103,6 +121,8 @@ def login_register(request: Request,
             request.session['user_id'] = tupla[0]
             request.session['username'] = tupla[1]
             request.session['role'] = tupla[4]
+            
+            print(f"Session after login: {dict(request.session)}")  # Debug print
 
             # Reindirizzamento basato sul ruolo
             role_redirects = {
@@ -113,13 +133,18 @@ def login_register(request: Request,
             }
 
             if tupla[4] in role_redirects:
-                return RedirectResponse(
+                response = RedirectResponse(
                     url=role_redirects[tupla[4]], 
                     status_code=303)
+                return response
             
             return template.TemplateResponse("loginRegister.html", 
                 {"request": request, "error": "Ruolo non valido"})
 
+        except Exception as e:
+            print(f"Login error: {str(e)}")  # Debug print
+            return template.TemplateResponse("loginRegister.html", 
+                {"request": request, "error": f"Errore durante il login: {str(e)}"})
         finally:
             cursor.close()
             conn.close()
@@ -147,10 +172,6 @@ def login_register(request: Request,
         finally:
             cursor.close()
             conn.close()
-
-@app.get("/user_dashboard", response_class=HTMLResponse)
-def loginPage(request: Request):
-    return template.TemplateResponse("user_dashboard.html", {"request": request})
 
 @app.post("/inviaCodice")
 def invia_codice(request: Request, email: str = Form(...)):
@@ -307,129 +328,567 @@ def delete_user(username: str):
         cursor.close()
         conn.close()
 
-@app.get("/hot_products.html", response_class=HTMLResponse)
-def hot_products(request: Request):
-    return template.TemplateResponse("hot_products.html", {"request": request})
 
-@app.get("/carrello.html", response_class=HTMLResponse)
-def carrello(request: Request):
-    context = {
-        "request": request,
-        "static_url": "/static",  # Aggiungi questo
-        "carrello_items": request.session.get("carrello", [])  # Passa i dati del carrello
-    }
-    return template.TemplateResponse("carrello.html", context)
+
+
+@app.get("/user_dashboard", response_class=HTMLResponse)
+def user_dashboard(request: Request):
+    
+    fake_products = [
+        {
+            'id_prodotto': 1,
+            'nome': 'test prodotto',
+            'descrizione': 'descrizione test',
+            'prezzo': 20.5,
+            'immagine_url': '../static/images/download.jpg',
+            'prezzo_scontato': 25.0,
+            'id': 1
+        }
+    ]   
+    
+    print("Session data:", dict(request.session))  # Debug print
+    if 'user_id' not in request.session:
+        print("User not logged in, redirecting to login")  # Debug print
+        return RedirectResponse(url="/loginRegister", status_code=303)
+        
+    conn = connessione()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM prodotti")
+        products = cursor.fetchall()
+
+        # Qui aggiungi la chiave id uguale a id_prodotto per comodità nel template
+        for prodotto in products:
+            prodotto['id'] = prodotto['id_prodotto']
+            for key, value in prodotto.items():
+                if isinstance(value, Decimal):
+                    prodotto[key] = float(value)
+        
+        
+        print("Products from DB:", products)  # Debug print
+        print(f"Passing to template {len(products)} products")
+        return template.TemplateResponse("user_dashboard.html", {
+            "request": request,
+            "prodotti_lista": products,
+            "username": request.session.get('username', 'tester')
+        })
+    except Exception as e:
+        print(f"Error in user_dashboard: {str(e)}")  # Debug print
+        return template.TemplateResponse("user_dashboard.html", {
+            "request": request,
+            "products": [],
+            "error": f"Errore nel caricamento dei prodotti: {str(e)}",
+            "username": request.session.get('username')
+        })
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 
 
 # -------------------------------------------------------------------------------------
-# CARRELLO 
-# -------------------------------------------------------------------------------------
-def get_carrello(request: Request) -> list:
-    """Recupera il carrello dalla sessione."""
-    return request.session.get("carrello", [])
-
-def update_carrello(request: Request, carrello: list):
-    """Aggiorna il carrello nella sessione."""
-    request.session["carrello"] = carrello
-    
-@app.post("/carrello/aggiorna/{prodotto_id}")
-async def aggiorna_quantita_carrello(request: Request, prodotto_id: int, quantita: int = Form(...)):
-    """Aggiorna la quantità di un prodotto nel carrello."""
-    carrello = get_carrello(request)
-    
-    # Cerca il prodotto nel carrello
-    prodotto_trovato = False
-    for item in carrello:
-        if item['id'] == prodotto_id:
-            if quantita > 0:
-                item['quantita'] = quantita
-            else:
-                carrello.remove(item)
-            prodotto_trovato = True
-            break
-    
-    if not prodotto_trovato:
-        raise HTTPException(status_code=404, detail="Prodotto non trovato nel carrello")
-    
-    update_carrello(request, carrello)
-    return RedirectResponse(url="/carrello", status_code=303)
-
-@app.post("/carrello/rimuovi/{prodotto_id}")
-async def rimuovi_dal_carrello(request: Request, prodotto_id: int):
-    """Rimuove completamente un prodotto dal carrello."""
-    carrello = get_carrello(request)
-    nuovo_carrello = [item for item in carrello if item['id'] != prodotto_id]
-    
-    if len(nuovo_carrello) == len(carrello):
-        raise HTTPException(status_code=404, detail="Prodotto non trovato nel carrello")
-    
-    update_carrello(request, nuovo_carrello)
-    return RedirectResponse(url="/carrello", status_code=303)
-
-@app.get("/carrello/totale")
-async def calcola_totale(request: Request):
-    """Calcola il totale del carrello."""
-    carrello = get_carrello(request)
-    totale = sum(item['prezzo'] * item['quantita'] for item in carrello)
-    return {"totale": totale}
-
-@app.post("/carrello/svuota")
-async def svuota_carrello(request: Request):
-    """Svuota completamente il carrello."""
-    update_carrello(request, [])
-    return {"message": "Carrello svuotato con successo"}
-
-# -------------------------------------------------------------------------------------
-# CHECKOUT E ORDINI
+# Dipendente
 # -------------------------------------------------------------------------------------
 
-class OrdineCreate(BaseModel):
-    indirizzo: str
-    note: Optional[str] = None
+@app.get("/logout")
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/loginRegister")
 
-@app.post("/ordine/crea")
-async def crea_ordine(request: Request, ordine_data: OrdineCreate):
-    """Crea un nuovo ordine dal contenuto del carrello."""
-    carrello = get_carrello(request)
+@app.get("/dipendente_dashboard", response_class=HTMLResponse)
+def dipendente_dashboard_page(request: Request):
+    # Verifica che l'utente sia loggato e sia un dipendente
+    if 'user_id' not in request.session or request.session.get('role') != 'dipendente':
+        return RedirectResponse(url="/loginRegister")
     
-    if not carrello:
-        raise HTTPException(status_code=400, detail="Il carrello è vuoto")
+    return template.TemplateResponse("dipendente_dashboard.html", {"request": request})
+
+@app.get("/aggiungi_prodotto", response_class=HTMLResponse)
+def aggiungi_prodotto_page(request: Request):
+    # Verifica che l'utente sia loggato e sia un dipendente
+    if 'user_id' not in request.session or request.session.get('role') != 'dipendente':
+        return RedirectResponse(url="/loginRegister")
+    
+    return template.TemplateResponse("aggiungi_prodotto.html", {"request": request})
+
+@app.post("/aggiungi_prodotto")
+async def aggiungi_prodotto(
+    request: Request,
+    nome: str = Form(...),
+    descrizione: str = Form(...),
+    prezzo: float = Form(...),
+    quantita: int = Form(...),
+    immagine_url: str = Form(...)
+):
+    # Verifica che l'utente sia loggato e sia un dipendente
+    if 'user_id' not in request.session or request.session.get('role') != 'dipendente':
+        return RedirectResponse(url="/loginRegister")
     
     conn = connessione()
     cursor = conn.cursor()
     
     try:
-        # Creazione ordine
         cursor.execute(
-            "INSERT INTO ordini (utente_id, indirizzo, note, stato) VALUES (%s, %s, %s, 'in_attesa')",
-            (request.session.get('user_id'), ordine_data.indirizzo, ordine_data.note)
+            "INSERT INTO prodotti (nome, descrizione, prezzo, quantita_disponibile, immagine_url) VALUES (%s, %s, %s, %s, %s)",
+            (nome, descrizione, prezzo, quantita, immagine_url)
         )
-        ordine_id = cursor.lastrowid
-        
-        # Aggiungi prodotti all'ordine
-        for item in carrello:
-            cursor.execute(
-                """INSERT INTO ordine_prodotti 
-                (ordine_id, prodotto_id, quantita, prezzo_unitario) 
-                VALUES (%s, %s, %s, %s)""",
-                (ordine_id, item['id'], item['quantita'], item['prezzo'])
-            )
-        
-        # Svuota carrello
-        update_carrello(request, [])
         conn.commit()
-        
-        return {
-            "message": "Ordine creato con successo",
-            "ordine_id": ordine_id,
-            "totale": sum(item['prezzo'] * item['quantita'] for item in carrello)
-        }
-    
+        return template.TemplateResponse("aggiungi_prodotto.html", {
+            "request": request,
+            "success": "Prodotto aggiunto con successo!"
+        })
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Errore durante la creazione dell'ordine: {str(e)}")
+        return template.TemplateResponse("aggiungi_prodotto.html", {
+            "request": request,
+            "error": f"Errore durante l'aggiunta del prodotto: {str(e)}"
+        })
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/products")
+def get_products():
+    conn = connessione()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM prodotti")
+        products = cursor.fetchall()
+        return {"products": products}
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/hot_products", response_class=HTMLResponse)
+def hot_products(request: Request):
+    conn = connessione()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM prodotti")
+        products = cursor.fetchall()
+
+        # Qui aggiungi la chiave id uguale a id_prodotto per comodità nel template
+        for prodotto in products:
+            prodotto['id'] = prodotto['id_prodotto']
+            for key, value in prodotto.items():
+                if isinstance(value, Decimal):
+                    prodotto[key] = float(value)
+        
+        
+        print("Products from DB:", products)  # Debug print
+        print(f"Passing to template {len(products)} products")
+        return template.TemplateResponse("hot_products.html", {
+            "request": request,
+            "prodotti_lista": products,
+            "username": request.session.get('username', 'tester')
+        })
+    except Exception as e:
+        print(f"Error in user_dashboard: {str(e)}")  # Debug print
+        return template.TemplateResponse("hot_products.html", {
+            "request": request,
+            "products": [],
+            "error": f"Errore nel caricamento dei prodotti: {str(e)}",
+            "username": request.session.get('username')
+        })
+    finally:
+        cursor.close()
+        conn.close()
+        
+
+########################
+#CARRELLO              #
+########################
+
+def get_carrello_db(utente_id: int) -> list:
+    conn = connessione()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT p.id_prodotto as id, p.nome, p.prezzo, p.immagine_url, c.quantita 
+            FROM carrello c
+            JOIN prodotti p ON c.id_prodotto = p.id_prodotto
+            WHERE c.id_utente = %s
+        """, (utente_id,))
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+def aggiungi_al_carrello_db(utente_id: int, prodotto_id: int, quantita: int = 1):
+    conn = connessione()
+    cursor = conn.cursor()
+    try:
+        print(f"Aggiungendo al carrello - utente_id: {utente_id}, prodotto_id: {prodotto_id}, quantita: {quantita}")  # Debug print
+        # Verifica se il prodotto è già nel carrello
+        cursor.execute("SELECT quantita FROM carrello WHERE id_utente = %s AND id_prodotto = %s", 
+                      (utente_id, prodotto_id))
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Aggiorna la quantità
+            new_quantita = existing[0] + quantita
+            print(f"Prodotto esistente - aggiornando quantità a: {new_quantita}")  # Debug print
+            cursor.execute("UPDATE carrello SET quantita = %s WHERE id_utente = %s AND id_prodotto = %s",
+                          (new_quantita, utente_id, prodotto_id))
+        else:
+            # Aggiungi nuovo prodotto
+            print(f"Nuovo prodotto - inserendo nel carrello")  # Debug print
+            cursor.execute("INSERT INTO carrello (id_utente, id_prodotto, quantita) VALUES (%s, %s, %s)",
+                          (utente_id, prodotto_id, quantita))
+        conn.commit()
+        print("Operazione completata con successo")  # Debug print
+    except Exception as e:
+        conn.rollback()
+        print(f"Errore nell'aggiunta al carrello: {str(e)}")  # Debug print
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def rimuovi_dal_carrello_db(utente_id: int, prodotto_id: int):
+    conn = connessione()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM carrello WHERE id_utente = %s AND id_prodotto = %s", 
+                      (utente_id, prodotto_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def svuota_carrello_db(utente_id: int):
+    conn = connessione()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM carrello WHERE id_utente = %s", (utente_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+        
+@app.get("/api/carrello")
+async def api_carrello(request: Request):
+    if 'user_id' not in request.session:
+        return JSONResponse(content={"error": "Non autorizzato"}, status_code=401)
     
+    utente_id = request.session['user_id']
+    carrello_items = get_carrello_db(utente_id)
+
+    # Converti i Decimal in float per JSON serializzabile
+    for item in carrello_items:
+        for key, value in item.items():
+            if isinstance(value, Decimal):
+                item[key] = float(value)
+
+    return JSONResponse(content=carrello_items)
+
+
+@app.get("/carrello", response_class=HTMLResponse)
+def carrello(request: Request):
+    if 'user_id' not in request.session:
+        return RedirectResponse(url="/loginRegister")
+
+    user_id = request.session['user_id']
+    carrello_items = get_carrello_db(user_id)
+
+    # Calcola il totale: prezzo * quantità
+    totale = sum(item['prezzo'] * item['quantita'] for item in carrello_items)
+
+    context = {
+        "request": request,
+        "carrello_items": carrello_items,
+        "totale": totale
+    }
+    return template.TemplateResponse("carrello.html", context)
+
+@app.post("/carrello/aggiungi/{prodotto_id}")
+async def aggiungi_al_carrello(request: Request, prodotto_id: int, quantita: int = Form(1)):
+    if 'user_id' not in request.session:
+        raise HTTPException(status_code=401, detail="Non autorizzato")
+    
+    user_id = request.session['user_id']
+    aggiungi_al_carrello_db(user_id, prodotto_id, quantita)
+    return RedirectResponse(url="/carrello", status_code=303)
+
+@app.post("/carrello/aggiorna/{prodotto_id}")
+async def aggiorna_quantita_carrello(request: Request, prodotto_id: int, quantita: int = Form(...)):
+    if 'user_id' not in request.session:
+        raise HTTPException(status_code=401, detail="Non autorizzato")
+    
+    user_id = request.session['user_id']
+    if quantita <= 0:
+        rimuovi_dal_carrello_db(user_id, prodotto_id)
+    else:
+        conn = connessione()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE carrello SET quantita = %s WHERE id_utente = %s AND id_prodotto = %s",
+                          (quantita, user_id, prodotto_id))
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+    
+    return RedirectResponse(url="/carrello", status_code=303)
+
+@app.post("/carrello/rimuovi/{prodotto_id}")
+async def rimuovi_dal_carrello(request: Request, prodotto_id: int):
+    if 'user_id' not in request.session:
+        raise HTTPException(status_code=401, detail="Non autorizzato")
+    
+    user_id = request.session['user_id']
+    rimuovi_dal_carrello_db(user_id, prodotto_id)
+    return RedirectResponse(url="/carrello", status_code=303)
+
+@app.post("/carrello/svuota")
+async def svuota_carrello(request: Request):
+    if 'user_id' not in request.session:
+        raise HTTPException(status_code=401, detail="Non autorizzato")
+    
+    user_id = request.session['user_id']
+    svuota_carrello_db(user_id)
+    return RedirectResponse(url="/carrello", status_code=303)
+
+
+########################
+#ORDINE                #
+########################
+@app.get("/checkout", response_class=HTMLResponse)
+def mostra_checkout(request: Request):
+    if 'user_id' not in request.session:
+        return RedirectResponse("/loginRegister")
+    
+    user_id = request.session['user_id']
+    carrello_items = get_carrello_db(user_id)
+    totale = sum(item['prezzo'] * item['quantita'] for item in carrello_items)
+    
+    return template.TemplateResponse("checkout.html", {
+        "request": request,
+        "carrello_items": carrello_items,
+        "totale": round(totale, 2)
+    })
+
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+def invia_emailCheckOut(destinatario, prodotti, totale):
+    sender_email = "patadmpatberna@gmail.com"
+    password = "rmem vklz zcrp lxsy"
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+
+    subject = "Dettagli del tuo ordine"
+
+    # Costruiamo il corpo della mail con i dettagli dell'ordine
+    body = "Grazie per il tuo ordine! Ecco i dettagli:\n\n"
+    body += "{:<30} {:<10} {:<15} {:<10}\n".format("Prodotto", "Quantità", "Prezzo unitario", "Totale")
+    body += "-"*70 + "\n"
+    
+    for prodotto in prodotti:
+        nome = prodotto['nome']
+        quantita = prodotto['quantita']
+        prezzo_unitario = prodotto['prezzo']
+        totale_prodotto = quantita * prezzo_unitario
+        body += f"{nome:<30} {quantita:<10} {prezzo_unitario:<15.2f} {totale_prodotto:<10.2f}\n"
+    
+    body += "\nPrezzo totale ordine: {:.2f} €".format(totale)
+
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = destinatario
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, password)
+        server.sendmail(sender_email, destinatario, msg.as_string())
+        server.quit()
+        print("Email inviata correttamente a", destinatario)
+    except Exception as e:
+        print(f"Errore nell'invio dell'email: {e}")
+
+@app.post("/checkout/confirm")
+def conferma_ordine(request: Request):
+    if 'user_id' not in request.session:
+        return RedirectResponse("/loginRegister")
+    
+    user_id = request.session['user_id']
+    carrello_items = get_carrello_db(user_id)
+
+    if not carrello_items:
+        return RedirectResponse("/carrello")  # Carrello vuoto
+
+    conn = connessione()
+    cursor = conn.cursor()
+    try:
+        totale = sum(item['prezzo'] * item['quantita'] for item in carrello_items)
+        cursor.execute("INSERT INTO ordini (id_utente, totale) VALUES (%s, %s)", (user_id, totale))
+        ordine_id = cursor.lastrowid
+
+        for item in carrello_items:
+            cursor.execute(
+                "INSERT INTO dettagli_ordine (id_ordine, id_prodotto, quantita, prezzo_unitario) VALUES (%s, %s, %s, %s)",
+                (ordine_id, item['id'], item['quantita'], item['prezzo'])
+            )
+            cursor.execute(
+                "UPDATE prodotti SET quantita_disponibile = quantita_disponibile - %s WHERE id_prodotto = %s",
+                (item['quantita'], item['id'])
+            )
+
+        # Recupera email utente dal DB (aggiusta la query in base alla tua tabella utenti)
+        cursor.execute("SELECT email FROM utenti WHERE id_utente = %s", (user_id,))
+        user_data = cursor.fetchone()
+        email_utente = user_data[0] if user_data else None
+
+        svuota_carrello_db(user_id)
+        conn.commit()
+
+        # Invia email se abbiamo l'indirizzo
+        if email_utente:
+            invia_emailCheckOut(email_utente, carrello_items, totale)
+            print("CIIAAAAAOOOOOOOOOO, mail inviata con succeso")
+        return RedirectResponse("/user_dashboard", status_code=303)
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Errore nel completare l'ordine: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
+def crea_ordine_db(utente_id: int):
+    conn = connessione()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 1. Recupera il carrello
+        cursor.execute("""
+            SELECT c.id_prodotto, c.quantita, p.prezzo
+            FROM carrello c
+            JOIN prodotti p ON c.id_prodotto = p.id_prodotto
+            WHERE c.id_utente = %s
+        """, (utente_id,))
+        carrello = cursor.fetchall()
+
+        if not carrello:
+            raise Exception("Il carrello è vuoto.")
+
+        # 2. Calcola il totale ordine
+        totale = sum(item['prezzo'] * item['quantita'] for item in carrello)
+
+        # 3. Inserisci l’ordine
+        cursor.execute("""
+            INSERT INTO ordini (id_utente, data_ordine, totale) 
+            VALUES (%s, %s, %s)
+        """, (utente_id, datetime.now(), totale))
+        id_ordine = cursor.lastrowid
+
+        # 4. Inserisci ogni prodotto nei dettagli ordine
+        for item in carrello:
+            cursor.execute("""
+                INSERT INTO dettagli_ordine (id_ordine, id_prodotto, quantita, prezzo_unitario)
+                VALUES (%s, %s, %s, %s)
+            """, (id_ordine, item['id_prodotto'], item['quantita'], item['prezzo']))
+
+        # 5. Svuota il carrello
+        cursor.execute("DELETE FROM carrello WHERE id_utente = %s", (utente_id,))
+
+        conn.commit()
+        return id_ordine
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.post("/carrello/conferma_ordine")
+async def conferma_ordine(request: Request):
+    if 'user_id' not in request.session:
+        raise HTTPException(status_code=401, detail="Non autorizzato")
+
+    user_id = request.session['user_id']
+    try:
+        ordine_id = crea_ordine_db(user_id)
+        return RedirectResponse(url=f"/ordine_confermato/{ordine_id}", status_code=303)
+    except Exception as e:
+        return template.TemplateResponse("carrello.html", {
+            "request": request,
+            "carrello_items": get_carrello_db(user_id),
+            "totale": sum(item['prezzo'] * item['quantita'] for item in get_carrello_db(user_id)),
+            "error": f"Errore durante la conferma dell’ordine: {str(e)}"
+        })
+
+
+@app.get("/ordine_confermato/{ordine_id}", response_class=HTMLResponse)
+def ordine_confermato(request: Request, ordine_id: int):
+    return template.TemplateResponse("ordine_confermato.html", {
+        "request": request,
+        "ordine_id": ordine_id
+    })
+
+
+@app.get("/i_miei_ordini", response_class=HTMLResponse)
+def i_miei_ordini(request: Request):
+    if 'user_id' not in request.session:
+        return RedirectResponse(url="/loginRegister")
+
+    user_id = request.session['user_id']
+    conn = connessione()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT * FROM ordini WHERE id_utente = %s ORDER BY data_ordine DESC
+        """, (user_id,))
+        ordini = cursor.fetchall()
+        return template.TemplateResponse("i_miei_ordini.html", {
+            "request": request,
+            "ordini": ordini
+        })
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get("/ordine/{ordine_id}", response_class=HTMLResponse)
+def dettaglio_ordine(request: Request, ordine_id: int):
+    if 'user_id' not in request.session:
+        return RedirectResponse(url="/loginRegister")
+
+    conn = connessione()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Recupera info ordine
+        cursor.execute("SELECT * FROM ordini WHERE id_ordine = %s", (ordine_id,))
+        ordine = cursor.fetchone()
+
+        # Recupera dettagli
+        cursor.execute("""
+            SELECT d.*, p.nome, p.immagine_url
+            FROM dettagli_ordine d
+            JOIN prodotti p ON d.id_prodotto = p.id_prodotto
+            WHERE d.id_ordine = %s
+        """, (ordine_id,))
+        dettagli = cursor.fetchall()
+
+        return template.TemplateResponse("dettaglio_ordine.html", {
+            "request": request,
+            "ordine": ordine,
+            "dettagli": dettagli
+        })
     finally:
         cursor.close()
         conn.close()

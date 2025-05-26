@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Conferma Ordine | TechStore</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    <style>
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', sans-serif;
+            color: #2c3e50;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #3498db;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #ecf0f1;
+        }
+
+        .total {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .btn-confirm {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-confirm:hover {
+            background-color: #219150;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Conferma il tuo ordine</h1>
+
+        {% if carrello_items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Prodotto</th>
+                    <th>Quantità</th>
+                    <th>Prezzo unitario</th>
+                    <th>Totale</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in carrello_items %}
+                <tr>
+                    <td>{{ item.nome }}</td>
+                    <td>{{ item.quantita }}</td>
+                    <td>€ {{ item.prezzo }}</td>
+                    <td>€ {{ item.prezzo * item.quantita }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total">Totale ordine: € {{ totale }}</div>
+
+        <form action="/checkout/confirm" method="post">
+            <button type="submit" class="btn-confirm">Conferma Ordine</button>
+        </form>
+        {% else %}
+            <p class="message">Il tuo carrello è vuoto.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
