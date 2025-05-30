@@ -1,4 +1,48 @@
 /* Base styles */
+/* Search box styles */
+.search-box {
+    margin: 0 20px;
+    display: flex;
+    align-items: center;
+}
+
+.search-box form {
+    display: flex;
+}
+
+.search-box input {
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    outline: none;
+    width: 200px;
+}
+
+.search-box button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+}
+
+.search-box button:hover {
+    background: #1d4ed8;
+}
+
+@media (max-width: 900px) {
+    .search-box {
+        margin: 10px 0;
+        width: 100%;
+        order: 3;
+    }
+    
+    .search-box input {
+        width: 100%;
+    }
+}
+
 *{
     margin: 0px;/*------------------------------webkit-error-----------------------------------------*/
     padding: 0px;
