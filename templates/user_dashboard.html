@@ -1,4 +1,4 @@
-<!--DOCTYPE html-->
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -50,8 +50,8 @@
         </ul>
 
         <div class="search-box">
-            <form action="/search" method="get">
-                <input type="text" name="query" placeholder="Cerca prodotti..." required>
+            <form action="/user_dashboard" method="get">
+                <input type="text" name="search_query" placeholder="Cerca prodotti..." value="{{ search_query if search_query else '' }}">
                 <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
         </div>
@@ -80,6 +80,46 @@
             <img src="../static/images/image-apple.png"/>
         </div>
     </section><!--main-end-->
+
+    {% if search_query %}
+    <!-- Sezione risultati di ricerca -->
+    <section class="recent-product">
+        <div class="product-heading">
+            <h3>Risultati della ricerca per "{{ search_query }}"</h3>
+            <a href="/user_dashboard">Mostra tutti i prodotti</a>
+        </div>
+        <div class="r-product-container">
+            {% if prodotti_lista %}
+                {% for product in prodotti_lista %}
+                <div class="r-product-box">
+                    <div class="r-product-img">
+                        <img src="{{ product.immagine_url }}" alt="{{ product.nome }}">
+                    </div>
+                    <div class="r-product-text">
+                        <a class="product-box-p-name" href="#">{{ product.nome }}</a>
+                        <span class="p-box-category">
+                            <a>Electronic</a> &gt; <a>Computer Accessories</a>
+                        </span>
+                        <span class="p-box-price">€{{ product.prezzo }} </span>
+
+                        <form action="/carrello/aggiungi/{{ product.id }}" method="post" enctype="application/x-www-form-urlencoded">
+                            <input type="hidden" name="quantita" value="1" />
+                            <button type="submit">
+                                Aggiungi al carrello <i class="fa-solid fa-cart-shopping"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-results">
+                    <p>Nessun prodotto trovato per "{{ search_query }}"</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+    {% else %}
+    <!-- Sezione normale (senza ricerca) -->
     <!--==Recent-Product=========================-->
     <section class="recent-product">
         <!--**heading********************-->
@@ -180,6 +220,8 @@
             {% endfor %}
         </div>
     </section><!--==popular-end===-->
+    {% endif %}
+
     <!--==contact===============================-->
     <section class="home-contact">
         <!--text-->
