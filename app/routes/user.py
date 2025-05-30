@@ -7,32 +7,47 @@ from decimal import Decimal
 router = APIRouter()
 
 @router.get("/user_dashboard", response_class=HTMLResponse)
-def user_dashboard(request: Request):
+def user_dashboard(request: Request, search_query: str = None):
     if 'user_id' not in request.session:
         return RedirectResponse(url="/loginRegister", status_code=303)
         
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Get recent products ordered by id_prodotto DESC
-        cursor.execute("""
-            SELECT * FROM prodotti 
-            WHERE quantita_disponibile > 0
-            ORDER BY id_prodotto DESC
-        """)
-        recent_products = cursor.fetchall()
+        if search_query:
+            # Se c'è una query di ricerca, mostra solo i risultati della ricerca
+            search_param = f"%{search_query}%"
+            cursor.execute("""
+                SELECT * FROM prodotti 
+                WHERE quantita_disponibile > 0
+                AND (nome LIKE %s OR descrizione LIKE %s)
+                ORDER BY id_prodotto DESC
+            """, (search_param, search_param))
+            products = cursor.fetchall()
+            
+            show_search_results = True
+        else:
+            # Altrimenti mostra i prodotti normali
+            # Get recent products ordered by id_prodotto DESC
+            cursor.execute("""
+                SELECT * FROM prodotti 
+                WHERE quantita_disponibile > 0
+                ORDER BY id_prodotto DESC
+            """)
+            recent_products = cursor.fetchall()
 
-        # Get products with lowest quantity
-        cursor.execute("""
-            SELECT * FROM prodotti 
-            WHERE quantita_disponibile > 0
-            ORDER BY quantita_disponibile ASC
-            LIMIT 5
-        """)
-        low_quantity_products = cursor.fetchall()
+            # Get products with lowest quantity
+            cursor.execute("""
+                SELECT * FROM prodotti 
+                WHERE quantita_disponibile > 0
+                ORDER BY quantita_disponibile ASC
+                LIMIT 5
+            """)
+            low_quantity_products = cursor.fetchall()
 
-        # Combine the products
-        products = recent_products + low_quantity_products
+            # Combine the products
+            products = recent_products + low_quantity_products
+            show_search_results = False
 
         for product in products:
             product['id'] = product['id_prodotto']
@@ -42,9 +57,11 @@ def user_dashboard(request: Request):
         
         return templates.TemplateResponse("user_dashboard.html", {
             "request": request,
-            "prodotti_lista": recent_products,
-            "prodotti_popolari": low_quantity_products,
-            "username": request.session.get('username', 'tester')
+            "prodotti_lista": products if show_search_results else recent_products,
+            "prodotti_popolari": low_quantity_products if not show_search_results else [],
+            "username": request.session.get('username', 'tester'),
+            "search_query": search_query,
+            "show_search_results": show_search_results
         })
     except Exception as e:
         print(f"Error in user_dashboard: {str(e)}")
